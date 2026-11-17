@@ -1,0 +1,32 @@
+:root{--g:#0e4a35;--g2:#1c7a54;--gold:#e8a820;--lost:#d9822b;--found:#1c7a54;--bg:#f2f5f1;--ink:#15241c;--mut:#62736a;--line:#d8e0d9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Figtree,system-ui,sans-serif}
+h1,h2,h3,.brand,.stub b{font-family:'Bricolage Grotesque',Figtree,sans-serif;line-height:1.1;margin:0 0 .5em}h1{font-size:clamp(2rem,4vw,3rem);font-weight:800}h2{font-size:1.4rem}
+a{color:var(--g2)}main{max-width:1120px;margin:0 auto;padding:28px 20px 80px}.mut{color:var(--mut);font-size:.9rem}
+.top{display:flex;align-items:center;gap:24px;padding:12px 24px;background:var(--g);color:#fff;flex-wrap:wrap}.top nav{display:flex;gap:4px;flex:1}
+.top a{color:#d6eadf;text-decoration:none;padding:8px 14px;border-radius:99px}.top a:hover,.top a.on{background:rgba(255,255,255,.14);color:#fff}
+.brand{display:flex;align-items:center;gap:10px;font-size:1.25rem;font-weight:800;color:#fff!important;padding:0!important}.brand i{width:22px;height:22px;border-radius:50% 50% 50% 4px;background:var(--gold);display:inline-block}.brand small{font:500 .75rem Figtree;opacity:.7}
+.who{display:flex;gap:12px;align-items:center;font-size:.9rem}
+input,select,textarea{width:100%;font:inherit;padding:11px 13px;border:1.5px solid var(--line);border-radius:10px;background:#fff;color:inherit}textarea{min-height:100px;resize:vertical}
+input:focus,select:focus,textarea:focus,.btn:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+label{display:block;font-weight:500;margin-bottom:14px}label input,label select,label textarea{margin-top:6px}input[type=checkbox],input[type=radio]{width:auto}
+.btn{display:inline-block;border:0;background:var(--g);color:#fff;font:700 1rem Figtree;padding:11px 20px;border-radius:10px;cursor:pointer;text-decoration:none}.btn:hover{background:var(--g2)}
+.btn.sm{padding:7px 14px;font-size:.9rem}.btn.ghost{background:transparent;color:inherit;border:1.5px solid currentColor}.btn.danger{background:#b3382c}
+.card{background:#fff;border-radius:16px;padding:26px;box-shadow:0 1px 0 var(--line),0 8px 24px -16px rgba(14,74,53,.35);margin-bottom:20px}.narrow{max-width:460px}.wide{max-width:760px}
+.err,.note{padding:11px 14px;border-radius:10px;margin-bottom:16px}.err{background:#fde8e5;color:#8d2217}.note{background:#e2f3e9;color:var(--g)}
+.login{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:center;min-height:90vh;max-width:1000px;margin:auto;padding:20px}.hero-l h1{font-size:clamp(2.2rem,5vw,3.6rem)}.tag{color:var(--g2);font-weight:700}
+.hero{background:var(--g);color:#fff;border-radius:20px;padding:36px;margin-bottom:28px}.search{display:grid;grid-template-columns:1fr 180px 150px auto;gap:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:20px}
+.tk{--c:var(--lost);display:grid;grid-template-columns:86px 1fr;background:#fff;border-radius:14px;position:relative;box-shadow:0 8px 24px -16px rgba(14,74,53,.4)}.tk.Found{--c:var(--found)}.tk.Claimed,.tk.Returned{--c:#6b7a72}
+.stub{background:var(--c);color:#fff;border-radius:14px 0 0 14px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px;border-right:2px dashed rgba(255,255,255,.65);padding:12px 4px;text-align:center}.stub b{font-size:1.2rem;writing-mode:vertical-rl;transform:rotate(180deg)}.stub span{font-size:.7rem;opacity:.9}
+.tk:before,.tk:after{content:"";position:absolute;left:75px;width:22px;height:22px;border-radius:50%;background:var(--bg)}.tk:before{top:-11px}.tk:after{bottom:-11px}
+.body{padding:16px 18px}.body img{width:100%;height:150px;object-fit:cover;border-radius:10px;margin-bottom:10px}.body h3{font-size:1.2rem;margin-bottom:4px}.body p{margin:0 0 10px;color:#41554a}
+dl{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;margin:0 0 12px;font-size:.9rem}dt{color:var(--mut)}dd{margin:0}details form{margin-top:10px}summary{list-style:none;cursor:pointer;display:inline-block}
+.bd{display:inline-block;padding:2px 10px;border-radius:99px;font-size:.8rem;font-weight:700;background:#e6ece8}.bd.Lost{background:#fbe6cf;color:#8a4a0c}.bd.Found,.bd.Approved{background:#d9f0e3;color:var(--g)}.bd.Rejected{background:#fde8e5;color:#8d2217}.bd.Pending{background:#fff2c9;color:#7a5600}
+.empty{text-align:center;padding:60px 20px;color:var(--mut)}table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;margin:12px 0 28px;font-size:.92rem}th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:middle}th{background:#e8efe9}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px}.tabs a{padding:8px 16px;border-radius:99px;background:#fff;text-decoration:none;color:var(--ink);border:1.5px solid var(--line)}.tabs a.on{background:var(--g);color:#fff;border-color:var(--g)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}.st{background:#fff;border-radius:14px;padding:20px;border-left:8px solid var(--gold)}.st.Lost{border-color:var(--lost)}.st.Found{border-color:var(--found)}.st b{display:block;font:800 2.6rem 'Bricolage Grotesque'}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.cols{display:grid;grid-template-columns:1.6fr 1fr;gap:28px;align-items:start}.row{display:flex;gap:8px;align-items:center}.trio{display:grid;gap:4px}
+.seg{display:flex;gap:10px;margin-bottom:18px}.seg label{flex:1;margin:0}.seg input{position:absolute;opacity:0}.seg span{display:block;text-align:center;padding:12px;border:2px solid var(--line);border-radius:12px;cursor:pointer;font-weight:700}.seg input:checked+span{border-color:var(--g);background:#e2f3e9}.seg input:focus-visible+span{outline:3px solid var(--gold)}
+.prev{max-width:240px;border-radius:10px;margin-bottom:14px}.claim{display:flex;justify-content:space-between;gap:20px}blockquote{margin:8px 0;padding-left:12px;border-left:4px solid var(--gold)}.list{list-style:none;padding:0}.list li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
+@media(max-width:800px){.login,.cols,.two,.search,.claim{grid-template-columns:1fr;display:grid}.top{gap:10px}.who span{display:none}table{display:block;overflow-x:auto}}
+@media print{.top,.noprint{display:none}body{background:#fff}table{font-size:11px}}
