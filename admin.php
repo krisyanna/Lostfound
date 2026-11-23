@@ -1,43 +1,357 @@
-<?php require 'inc.php';need('admin');$t=$_GET['t']??'dash';$ST=['Lost','Found','Claimed','Returned'];
-if($_SERVER['REQUEST_METHOD']==='POST'){chk();$a=$_POST['a']??'';$id=(int)($_POST['id']??0);
- if($a==='item'&&in_array($_POST['status']??'',$ST,true)){db()->prepare('UPDATE items SET status=?,verified=? WHERE id=?')->execute([$_POST['status'],isset($_POST['verified'])?1:0,$id]);logit('item_updated',tno($id).' '.$_POST['status']);flash('Item updated.');}
- elseif($a==='claim'){$ap=isset($_POST['ok']);$rm=clean($_POST['remarks']??'',255);
-  if(!$ap&&$rm==='')flash('Add remarks before rejecting a claim.');
-  else{$s=db()->prepare("UPDATE claims SET status=?,remarks=? WHERE id=? AND status='Pending'");$s->execute([$ap?'Approved':'Rejected',$ap?null:$rm,$id]);
-   if($ap&&$s->rowCount())db()->prepare("UPDATE items SET status='Claimed' WHERE id=(SELECT item_id FROM claims WHERE id=?)")->execute([$id]);logit($ap?'claim_approved':'claim_rejected','claim #'.$id);flash('Claim '.($ap?'approved.':'rejected.'));}}
- elseif($a==='user'){$un=clean($_POST['username']??'',40);$n=clean($_POST['name']??'',100);$em=clean($_POST['email']??'',120);$co=clean($_POST['course']??'',80);$ro=in_array($_POST['role']??'',['admin','student','viewer'],true)?$_POST['role']:'student';$pw=$_POST['pw']??'';$act=isset($_POST['active'])?1:0;
-  if(!$n||($em!==''&&!filter_var($em,FILTER_VALIDATE_EMAIL))||($pw!==''&&strlen($pw)<10))flash('Check the name, email and password (10+ characters).');
-  elseif($id===0){if(!$un||strlen($pw)<10)flash('Username and a 10+ character password are required.');else try{db()->prepare('INSERT INTO users(username,full_name,email,course,password_hash,role) VALUES(?,?,?,?,?,?)')->execute([$un,$n,$em,$co,password_hash($pw,PASSWORD_DEFAULT),$ro]);logit('user_created',$un);flash('Account created.');}catch(PDOException $x){flash('That username already exists.');}}
-  else{if($id===me()['id']){$act=1;$ro='admin';}db()->prepare('UPDATE users SET full_name=?,email=?,course=?,role=?,active=? WHERE id=?')->execute([$n,$em,$co,$ro,$act,$id]);
-   if($pw!=='')db()->prepare('UPDATE users SET password_hash=? WHERE id=?')->execute([password_hash($pw,PASSWORD_DEFAULT),$id]);logit('user_updated','#'.$id);flash('Account saved.');}}
- elseif($a==='cat'){$n=clean($_POST['name']??'',60);if($n)try{db()->prepare('INSERT INTO categories(name) VALUES(?)')->execute([$n]);logit('category_added',$n);flash('Category added.');}catch(PDOException $x){flash('Category already exists.');}}
- elseif($a==='catdel'){try{db()->prepare('DELETE FROM categories WHERE id=?')->execute([$id]);logit('category_deleted','#'.$id);flash('Category removed.');}catch(PDOException $x){flash('Category is in use and cannot be removed.');}}
- header('Location: admin.php?t='.urlencode($t));exit;}
-$n=fn($k,$l)=>'<a href="?t='.$k.'"'.($t===$k?' class="on"':'').'>'.$l.'</a>';
-head('Admin');?>
-<div class="tabs noprint"><?=$n('dash','Dashboard').$n('items','Reports').$n('claims','Claims').$n('users','Accounts').$n('cats','Categories').$n('logs','Activity log').$n('report','Print report')?></div>
-<?php if($t==='dash'):$c=fn($q)=>db()->query($q)->fetchColumn();?>
-<h1>Dashboard</h1><div class="stats"><div class="st Lost"><b><?=$c("SELECT COUNT(*) FROM items WHERE status='Lost'")?></b>Lost items</div><div class="st Found"><b><?=$c("SELECT COUNT(*) FROM items WHERE status='Found'")?></b>Found items</div><div class="st"><b><?=$c("SELECT COUNT(*) FROM claims WHERE status='Pending'")?></b>Claims to review</div><div class="st"><b><?=$c("SELECT COUNT(*) FROM items WHERE verified=0")?></b>Reports to verify</div></div>
-<?php elseif($t==='items'):$r=db()->query('SELECT i.*,u.full_name FROM items i JOIN users u ON u.id=i.user_id ORDER BY i.verified,i.created_at DESC LIMIT 200');?>
-<h1>Lost and found reports</h1><table><tr><th>Ticket</th><th>Item</th><th>Reported by</th><th>Status</th><th>Verified</th><th></th></tr>
-<?php foreach($r as $i):?><tr><form method="post"><?=tok()?><input type="hidden" name="a" value="item"><input type="hidden" name="id" value="<?=$i['id']?>"><td><?=tno($i['id'])?></td><td><b><?=e($i['name'])?></b><br><span class="mut"><?=e($i['location'])?> · <?=e($i['event_date'])?></span></td><td><?=e($i['full_name'])?></td>
-<td><select name="status"><?php foreach($ST as $x)echo '<option'.($i['status']===$x?' selected':'').'>'.$x.'</option>';?></select></td><td><input type="checkbox" name="verified" <?=$i['verified']?'checked':''?>></td><td><button class="btn sm">Save</button></td></form></tr><?php endforeach;?></table>
-<?php elseif($t==='claims'):$r=db()->query('SELECT cl.*,i.name,u.full_name,u.username FROM claims cl JOIN items i ON i.id=cl.item_id JOIN users u ON u.id=cl.user_id ORDER BY cl.status="Pending" DESC,cl.created_at DESC LIMIT 200');?>
-<h1>Claim requests</h1><?php foreach($r as $c):?><section class="card claim"><div><b><?=tno($c['item_id'])?> <?=e($c['name'])?></b> <?=badge($c['status'])?><p>Claimed by <?=e($c['full_name'])?> (<?=e($c['username'])?>)</p><blockquote><?=e($c['proof'])?></blockquote><?php if($c['remarks'])echo '<p class="mut">Remarks: '.e($c['remarks']).'</p>';?></div>
-<?php if($c['status']==='Pending'):?><form method="post"><?=tok()?><input type="hidden" name="a" value="claim"><input type="hidden" name="id" value="<?=$c['id']?>"><input name="remarks" placeholder="Remarks (required to reject)" maxlength="255"><div class="row"><button class="btn sm" name="ok" value="1" data-confirm="Approve this claim and mark the item Claimed?">Approve</button><button class="btn sm danger" name="no" value="1">Reject</button></div></form><?php endif;?></section><?php endforeach;?>
-<?php elseif($t==='users'):$r=db()->query('SELECT * FROM users ORDER BY role,full_name');?>
-<h1>Accounts</h1><section class="card"><h2>Add account</h2><form method="post" class="two"><?=tok()?><input type="hidden" name="a" value="user"><input type="hidden" name="id" value="0">
-<label>Student number / username<input name="username" required></label><label>Full name<input name="name" required></label><label>Email<input type="email" name="email"></label><label>Course<input name="course"></label>
-<label>Role<select name="role"><option>student</option><option>viewer</option><option>admin</option></select></label><label>Temporary password<input type="password" name="pw" minlength="10" required></label><button class="btn">Create account</button></form></section>
-<table><tr><th>Username</th><th>Name / email / course</th><th>Role</th><th>Active</th><th>New password</th><th></th></tr>
-<?php foreach($r as $x):?><tr><form method="post"><?=tok()?><input type="hidden" name="a" value="user"><input type="hidden" name="id" value="<?=$x['id']?>"><td><?=e($x['username'])?></td>
-<td class="trio"><input name="name" value="<?=e($x['full_name'])?>"><input name="email" value="<?=e($x['email'])?>" placeholder="email"><input name="course" value="<?=e($x['course'])?>" placeholder="course"></td>
-<td><select name="role"><?php foreach(['student','viewer','admin'] as $ro)echo '<option'.($x['role']===$ro?' selected':'').'>'.$ro.'</option>';?></select></td><td><input type="checkbox" name="active" <?=$x['active']?'checked':''?>></td><td><input type="password" name="pw" placeholder="leave blank"></td><td><button class="btn sm">Save</button></td></form></tr><?php endforeach;?></table>
-<?php elseif($t==='cats'):?><h1>Categories</h1><section class="card narrow"><form method="post" class="row"><?=tok()?><input type="hidden" name="a" value="cat"><input name="name" placeholder="New category" required><button class="btn sm">Add</button></form>
-<ul class="list"><?php foreach(db()->query('SELECT * FROM categories ORDER BY name') as $c)echo '<li>'.e($c['name']).'<form method="post">'.tok().'<input type="hidden" name="a" value="catdel"><input type="hidden" name="id" value="'.$c['id'].'"><button class="btn sm ghost" data-confirm="Remove this category?">Remove</button></form></li>';?></ul></section>
-<?php elseif($t==='logs'):$r=db()->query('SELECT l.*,u.username FROM activity_logs l LEFT JOIN users u ON u.id=l.user_id ORDER BY l.id DESC LIMIT 200');?>
-<h1>Activity log</h1><table><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr><?php foreach($r as $l)echo '<tr><td>'.e($l['created_at']).'</td><td>'.e($l['username']??'—').'</td><td>'.e($l['action']).'</td><td>'.e($l['details']).'</td><td>'.e($l['ip']).'</td></tr>';?></table>
-<?php else:$f=$_GET['s']??'';$r=db()->prepare('SELECT i.*,c.name cat,u.full_name FROM items i JOIN categories c ON c.id=i.category_id JOIN users u ON u.id=i.user_id WHERE (?="" OR i.status=?) ORDER BY i.created_at DESC');$r->execute([$f,$f]);?>
-<h1>Lost and found report</h1><form class="row noprint" method="get"><input type="hidden" name="t" value="report"><select name="s" data-auto><option value="">All statuses</option><?php foreach($ST as $x)echo '<option'.($f===$x?' selected':'').'>'.$x.'</option>';?></select><button type="button" class="btn sm" onclick="print()">Print</button></form>
-<p class="mut">Generated <?=date('F j, Y g:i A')?> by <?=e(me()['name'])?></p><table><tr><th>Ticket</th><th>Item</th><th>Category</th><th>Place</th><th>Date</th><th>Reporter</th><th>Status</th></tr>
-<?php foreach($r as $i)echo '<tr><td>'.tno($i['id']).'</td><td>'.e($i['name']).'</td><td>'.e($i['cat']).'</td><td>'.e($i['location']).'</td><td>'.e($i['event_date']).'</td><td>'.e($i['full_name']).'</td><td>'.e($i['status']).'</td></tr>';?></table><?php endif;foot();
+<?php
+require 'inc.php';
+need('admin');
+
+$t  = $_GET['t'] ?? 'dash';
+$ST = ['Lost', 'Found', 'Claimed', 'Returned'];
+
+/* ================= Handle form submissions ================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    chk();
+    $a  = $_POST['a'] ?? '';
+    $id = (int)($_POST['id'] ?? 0);
+
+    // --- Update item status / verification ---
+    if ($a === 'item' && in_array($_POST['status'] ?? '', $ST, true)) {
+        db()->prepare('UPDATE items SET status=?, verified=? WHERE id=?')
+            ->execute([$_POST['status'], isset($_POST['verified']) ? 1 : 0, $id]);
+        logit('item_updated', tno($id) . ' ' . $_POST['status']);
+        flash('Item updated.');
+
+    // --- Approve / reject a claim ---
+    } elseif ($a === 'claim') {
+        $ap = isset($_POST['ok']);
+        $rm = clean($_POST['remarks'] ?? '', 255);
+
+        if (!$ap && $rm === '') {
+            flash('Add remarks before rejecting a claim.');
+        } else {
+            $s = db()->prepare("UPDATE claims SET status=?, remarks=? WHERE id=? AND status='Pending'");
+            $s->execute([$ap ? 'Approved' : 'Rejected', $ap ? null : $rm, $id]);
+
+            if ($ap && $s->rowCount()) {
+                db()->prepare("UPDATE items SET status='Claimed' WHERE id=(SELECT item_id FROM claims WHERE id=?)")
+                    ->execute([$id]);
+            }
+            logit($ap ? 'claim_approved' : 'claim_rejected', 'claim #' . $id);
+            flash('Claim ' . ($ap ? 'approved.' : 'rejected.'));
+        }
+
+    // --- Create / edit a user account ---
+    } elseif ($a === 'user') {
+        $un  = clean($_POST['username'] ?? '', 40);
+        $n   = clean($_POST['name'] ?? '', 100);
+        $em  = clean($_POST['email'] ?? '', 120);
+        $co  = clean($_POST['course'] ?? '', 80);
+        $ro  = in_array($_POST['role'] ?? '', ['admin', 'student', 'viewer'], true) ? $_POST['role'] : 'student';
+        $pw  = $_POST['pw'] ?? '';
+        $act = isset($_POST['active']) ? 1 : 0;
+
+        if (!$n || ($em !== '' && !filter_var($em, FILTER_VALIDATE_EMAIL)) || ($pw !== '' && strlen($pw) < 10)) {
+            flash('Check the name, email and password (10+ characters).');
+
+        } elseif ($id === 0) {
+            if (!$un || strlen($pw) < 10) {
+                flash('Username and a 10+ character password are required.');
+            } else {
+                try {
+                    db()->prepare('INSERT INTO users(username,full_name,email,course,password_hash,role) VALUES(?,?,?,?,?,?)')
+                        ->execute([$un, $n, $em, $co, password_hash($pw, PASSWORD_DEFAULT), $ro]);
+                    logit('user_created', $un);
+                    flash('Account created.');
+                } catch (PDOException $x) {
+                    flash('That username already exists.');
+                }
+            }
+
+        } else {
+            if ($id === me()['id']) { // an admin cannot deactivate or demote themselves
+                $act = 1;
+                $ro  = 'admin';
+            }
+            db()->prepare('UPDATE users SET full_name=?, email=?, course=?, role=?, active=? WHERE id=?')
+                ->execute([$n, $em, $co, $ro, $act, $id]);
+
+            if ($pw !== '') {
+                db()->prepare('UPDATE users SET password_hash=? WHERE id=?')
+                    ->execute([password_hash($pw, PASSWORD_DEFAULT), $id]);
+            }
+            logit('user_updated', '#' . $id);
+            flash('Account saved.');
+        }
+
+    // --- Add a category ---
+    } elseif ($a === 'cat') {
+        $n = clean($_POST['name'] ?? '', 60);
+        if ($n) {
+            try {
+                db()->prepare('INSERT INTO categories(name) VALUES(?)')->execute([$n]);
+                logit('category_added', $n);
+                flash('Category added.');
+            } catch (PDOException $x) {
+                flash('Category already exists.');
+            }
+        }
+
+    // --- Delete a category ---
+    } elseif ($a === 'catdel') {
+        try {
+            db()->prepare('DELETE FROM categories WHERE id=?')->execute([$id]);
+            logit('category_deleted', '#' . $id);
+            flash('Category removed.');
+        } catch (PDOException $x) {
+            flash('Category is in use and cannot be removed.');
+        }
+    }
+
+    header('Location: admin.php?t=' . urlencode($t));
+    exit;
+}
+
+/* ================= Page ================= */
+$n = fn($k, $l) => '<a href="?t=' . $k . '"' . ($t === $k ? ' class="on"' : '') . '>' . $l . '</a>';
+
+head('Admin');
+?>
+
+<div class="tabs noprint">
+    <?= $n('dash', 'Dashboard')
+      . $n('items', 'Reports')
+      . $n('claims', 'Claims')
+      . $n('users', 'Accounts')
+      . $n('cats', 'Categories')
+      . $n('logs', 'Activity log')
+      . $n('report', 'Print report') ?>
+</div>
+
+<?php if ($t === 'dash'): ?>
+<?php $c = fn($q) => db()->query($q)->fetchColumn(); ?>
+
+    <h1>Dashboard</h1>
+    <div class="stats">
+        <div class="st Lost">
+            <b><?= $c("SELECT COUNT(*) FROM items WHERE status='Lost'") ?></b>Lost items
+        </div>
+        <div class="st Found">
+            <b><?= $c("SELECT COUNT(*) FROM items WHERE status='Found'") ?></b>Found items
+        </div>
+        <div class="st">
+            <b><?= $c("SELECT COUNT(*) FROM claims WHERE status='Pending'") ?></b>Claims to review
+        </div>
+        <div class="st">
+            <b><?= $c("SELECT COUNT(*) FROM items WHERE verified=0") ?></b>Reports to verify
+        </div>
+    </div>
+
+<?php elseif ($t === 'items'): ?>
+<?php $r = db()->query('SELECT i.*, u.full_name FROM items i JOIN users u ON u.id=i.user_id ORDER BY i.verified, i.created_at DESC LIMIT 200'); ?>
+
+    <h1>Lost and found reports</h1>
+    <table>
+        <tr>
+            <th>Ticket</th><th>Item</th><th>Reported by</th><th>Status</th><th>Verified</th><th></th>
+        </tr>
+        <?php foreach ($r as $i): ?>
+        <tr>
+            <form method="post">
+                <?= tok() ?>
+                <input type="hidden" name="a" value="item">
+                <input type="hidden" name="id" value="<?= $i['id'] ?>">
+                <td><?= tno($i['id']) ?></td>
+                <td>
+                    <b><?= e($i['name']) ?></b><br>
+                    <span class="mut"><?= e($i['location']) ?> · <?= e($i['event_date']) ?></span>
+                </td>
+                <td><?= e($i['full_name']) ?></td>
+                <td>
+                    <select name="status">
+                        <?php foreach ($ST as $x): ?>
+                            <option<?= $i['status'] === $x ? ' selected' : '' ?>><?= $x ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <td><input type="checkbox" name="verified" <?= $i['verified'] ? 'checked' : '' ?>></td>
+                <td><button class="btn sm">Save</button></td>
+            </form>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+
+<?php elseif ($t === 'claims'): ?>
+<?php $r = db()->query('SELECT cl.*, i.name, u.full_name, u.username FROM claims cl JOIN items i ON i.id=cl.item_id JOIN users u ON u.id=cl.user_id ORDER BY cl.status="Pending" DESC, cl.created_at DESC LIMIT 200'); ?>
+
+    <h1>Claim requests</h1>
+    <?php foreach ($r as $c): ?>
+    <section class="card claim">
+        <div>
+            <b><?= tno($c['item_id']) ?> <?= e($c['name']) ?></b> <?= badge($c['status']) ?>
+            <p>Claimed by <?= e($c['full_name']) ?> (<?= e($c['username']) ?>)</p>
+            <blockquote><?= e($c['proof']) ?></blockquote>
+            <?php if ($c['remarks']): ?>
+                <p class="mut">Remarks: <?= e($c['remarks']) ?></p>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($c['status'] === 'Pending'): ?>
+        <form method="post">
+            <?= tok() ?>
+            <input type="hidden" name="a" value="claim">
+            <input type="hidden" name="id" value="<?= $c['id'] ?>">
+            <input name="remarks" placeholder="Remarks (required to reject)" maxlength="255">
+            <div class="row">
+                <button class="btn sm" name="ok" value="1"
+                        data-confirm="Approve this claim and mark the item Claimed?">Approve</button>
+                <button class="btn sm danger" name="no" value="1">Reject</button>
+            </div>
+        </form>
+        <?php endif; ?>
+    </section>
+    <?php endforeach; ?>
+
+<?php elseif ($t === 'users'): ?>
+<?php $r = db()->query('SELECT * FROM users ORDER BY role, full_name'); ?>
+
+    <h1>Accounts</h1>
+
+    <section class="card">
+        <h2>Add account</h2>
+        <form method="post" class="two">
+            <?= tok() ?>
+            <input type="hidden" name="a" value="user">
+            <input type="hidden" name="id" value="0">
+
+            <label>Student number / username <input name="username" required></label>
+            <label>Full name <input name="name" required></label>
+            <label>Email <input type="email" name="email"></label>
+            <label>Course <input name="course"></label>
+            <label>Role
+                <select name="role">
+                    <option>student</option>
+                    <option>viewer</option>
+                    <option>admin</option>
+                </select>
+            </label>
+            <label>Temporary password <input type="password" name="pw" minlength="10" required></label>
+
+            <button class="btn">Create account</button>
+        </form>
+    </section>
+
+    <table>
+        <tr>
+            <th>Username</th><th>Name / email / course</th><th>Role</th><th>Active</th><th>New password</th><th></th>
+        </tr>
+        <?php foreach ($r as $x): ?>
+        <tr>
+            <form method="post">
+                <?= tok() ?>
+                <input type="hidden" name="a" value="user">
+                <input type="hidden" name="id" value="<?= $x['id'] ?>">
+                <td><?= e($x['username']) ?></td>
+                <td class="trio">
+                    <input name="name" value="<?= e($x['full_name']) ?>">
+                    <input name="email" value="<?= e($x['email']) ?>" placeholder="email">
+                    <input name="course" value="<?= e($x['course']) ?>" placeholder="course">
+                </td>
+                <td>
+                    <select name="role">
+                        <?php foreach (['student', 'viewer', 'admin'] as $ro): ?>
+                            <option<?= $x['role'] === $ro ? ' selected' : '' ?>><?= $ro ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </td>
+                <td><input type="checkbox" name="active" <?= $x['active'] ? 'checked' : '' ?>></td>
+                <td><input type="password" name="pw" placeholder="leave blank"></td>
+                <td><button class="btn sm">Save</button></td>
+            </form>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+
+<?php elseif ($t === 'cats'): ?>
+
+    <h1>Categories</h1>
+    <section class="card narrow">
+        <form method="post" class="row">
+            <?= tok() ?>
+            <input type="hidden" name="a" value="cat">
+            <input name="name" placeholder="New category" required>
+            <button class="btn sm">Add</button>
+        </form>
+
+        <ul class="list">
+            <?php foreach (db()->query('SELECT * FROM categories ORDER BY name') as $c): ?>
+            <li>
+                <?= e($c['name']) ?>
+                <form method="post">
+                    <?= tok() ?>
+                    <input type="hidden" name="a" value="catdel">
+                    <input type="hidden" name="id" value="<?= $c['id'] ?>">
+                    <button class="btn sm ghost" data-confirm="Remove this category?">Remove</button>
+                </form>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+    </section>
+
+<?php elseif ($t === 'logs'): ?>
+<?php $r = db()->query('SELECT l.*, u.username FROM activity_logs l LEFT JOIN users u ON u.id=l.user_id ORDER BY l.id DESC LIMIT 200'); ?>
+
+    <h1>Activity log</h1>
+    <table>
+        <tr>
+            <th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th>
+        </tr>
+        <?php foreach ($r as $l): ?>
+        <tr>
+            <td><?= e($l['created_at']) ?></td>
+            <td><?= e($l['username'] ?? '—') ?></td>
+            <td><?= e($l['action']) ?></td>
+            <td><?= e($l['details']) ?></td>
+            <td><?= e($l['ip']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+
+<?php else: ?>
+<?php
+    $f = $_GET['s'] ?? '';
+    $r = db()->prepare('SELECT i.*, c.name cat, u.full_name FROM items i JOIN categories c ON c.id=i.category_id JOIN users u ON u.id=i.user_id WHERE (?="" OR i.status=?) ORDER BY i.created_at DESC');
+    $r->execute([$f, $f]);
+?>
+
+    <h1>Lost and found report</h1>
+
+    <form class="row noprint" method="get">
+        <input type="hidden" name="t" value="report">
+        <select name="s" data-auto>
+            <option value="">All statuses</option>
+            <?php foreach ($ST as $x): ?>
+                <option<?= $f === $x ? ' selected' : '' ?>><?= $x ?></option>
+            <?php endforeach; ?>
+        </select>
+        <button type="button" class="btn sm" onclick="print()">Print</button>
+    </form>
+
+    <p class="mut">Generated <?= date('F j, Y g:i A') ?> by <?= e(me()['name']) ?></p>
+
+    <table>
+        <tr>
+            <th>Ticket</th><th>Item</th><th>Category</th><th>Place</th><th>Date</th><th>Reporter</th><th>Status</th>
+        </tr>
+        <?php foreach ($r as $i): ?>
+        <tr>
+            <td><?= tno($i['id']) ?></td>
+            <td><?= e($i['name']) ?></td>
+            <td><?= e($i['cat']) ?></td>
+            <td><?= e($i['location']) ?></td>
+            <td><?= e($i['event_date']) ?></td>
+            <td><?= e($i['full_name']) ?></td>
+            <td><?= e($i['status']) ?></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+
+<?php endif; ?>
+
+<?php foot();
