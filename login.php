@@ -10,7 +10,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){chk();$un=trim($_POST['username']??'');
  else{if($u){$f=$u['failed']+1;db()->prepare('UPDATE users SET failed=?,locked_until=? WHERE id=?')->execute([$f,$f>=5?date('Y-m-d H:i:s',time()+600):null,$u['id']]);}
   $err='Wrong username or password, or the account is deactivated.';logit('login_failed',$un);}}
 head('Log in');?>
-<div class="login"><section class="hero-l"><p class="tag">Cavite State University · CEIT</p><h1>Lost something on campus?<br>Someone may have it.</h1><p>Report what you lost, post what you found, and claim your belongings through a verified process.</p></section>
+<div class="login"><section class="hero-l"><p class="tag">Cavite State University · CEIT</p><h1>Lost something on campus?<br>Someone may have it.</h1><p>Report what you lost, post what you found, and claim your belongings through a verified process.</p><ol class="how"><li><span><b>Report</b> what you lost or found</span></li><li><span><b>Verified</b> by the administrator</span></li><li><span><b>Claim</b> it with proof of ownership</span></li></ol></section>
 <section class="card"><h2>Log in</h2><?php if($err)echo '<div class="err">'.e($err).'</div>';?>
 <form method="post"><?=tok()?><label>Username / student number<input name="username" autocomplete="username" required autofocus></label>
 <label>Password<input type="password" name="password" autocomplete="current-password" required></label><button class="btn">Log in</button>

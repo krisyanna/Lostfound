@@ -17,11 +17,14 @@ function tno($id){return 'LF-'.str_pad($id,4,'0',STR_PAD_LEFT);}
 function clean($s,$max){return mb_substr(trim(strip_tags((string)$s)),0,$max);}
 function head($title,$print=false){$u=me();$cur=basename($_SERVER['SCRIPT_NAME']);
 $n=fn($f,$l)=>'<a href="'.$f.'"'.($cur===$f?' class="on"':'').'>'.$l.'</a>';
-echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'.e($title).' · CvSU Lost &amp; Found</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;500;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css"></head><body>';
-if($u){echo '<header class="top"><a class="brand" href="index.php"><i></i>Lost &amp; Found <small>CvSU Indang</small></a><nav>'.$n('index.php','Browse');
+echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'.e($title).' · CvSU Lost &amp; Found</title><meta name="theme-color" content="#00693a"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css"></head><body>';
+echo '<div class="strip"><span>Cavite State University · Indang, Cavite</span><span>Lost and Found System</span></div><header class="top"><a class="brand" href="index.php"><i>CvSU</i><span>Lost &amp; Found<small>Cavite State University · Indang</small></span></a>';
+if($u)echo '<form method="post" action="logout.php" class="who"><span>'.e($u['name']).' · '.e($u['role']).'</span>'.tok().'<button class="btn ghost sm">Log out</button></form>';
+echo '</header>';
+if($u){echo '<nav class="menu">'.$n('index.php','Browse');
 if($u['role']==='student')echo $n('report.php','Report an item').$n('my.php','My activity');
 if($u['role']==='admin')echo $n('admin.php','Admin');
-echo '</nav><form method="post" action="logout.php" class="who"><span>'.e($u['name']).' · '.e($u['role']).'</span>'.tok().'<button class="btn ghost">Log out</button></form></header>';}
+echo '</nav>';}
 echo '<main>'; if($f=flash())echo '<div class="note">'.e($f).'</div>';}
-function foot(){echo '</main><script>document.querySelectorAll("[data-confirm]").forEach(b=>b.addEventListener("click",x=>{if(!confirm(b.dataset.confirm))x.preventDefault()}));document.querySelectorAll("[data-auto]").forEach(s=>s.addEventListener("change",()=>s.form.submit()));var p=document.getElementById("photo");if(p)p.addEventListener("change",()=>{var f=p.files[0],i=document.getElementById("prev");if(f){i.src=URL.createObjectURL(f);i.hidden=false}});</script></body></html>';}
+function foot(){echo '</main><footer class="foot">© '.date('Y').' Cavite State University · Lost and Found System</footer><script>document.querySelectorAll("[data-confirm]").forEach(b=>b.addEventListener("click",x=>{if(!confirm(b.dataset.confirm))x.preventDefault()}));document.querySelectorAll("[data-auto]").forEach(s=>s.addEventListener("change",()=>s.form.submit()));var p=document.getElementById("photo");if(p)p.addEventListener("change",()=>{var f=p.files[0],i=document.getElementById("prev");if(f){i.src=URL.createObjectURL(f);i.hidden=false}});</script></body></html>';}
 function badge($s){return '<span class="bd '.e($s).'">'.e($s).'</span>';}

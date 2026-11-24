@@ -13,14 +13,16 @@ $cats=db()->query('SELECT * FROM categories ORDER BY name')->fetchAll();
 $pend=[];if($u['role']==='student'){$r=db()->prepare("SELECT item_id FROM claims WHERE user_id=? AND status='Pending'");$r->execute([$u['id']]);$pend=$r->fetchAll(PDO::FETCH_COLUMN);}
 head('Browse');?>
 
-<section class="hero"><h1>Find it. Claim it. Get it back.</h1>
+<section class="hero"><h1>Find it. Claim it. Get it back.</h1><p>Search items reported on campus. Spotted yours? Send a claim with proof and the administrator will verify it.</p>
 
 <form class="search" method="get"><input name="q" value="<?=e($q)?>" placeholder="Search by item, description or place, e.g. “black umbrella library”">
 
 <select name="c" data-auto><option value="0">All categories</option><?php foreach($cats as $c)echo '<option value="'.$c['id'].'"'.($cat==$c['id']?' selected':'').'>'.e($c['name']).'</option>';?></select>
 
-<select name="s" data-auto><option value="">Any status</option><?php foreach(['Lost','Found','Claimed','Returned'] as $x)echo '<option'.($st===$x?' selected':'').'>'.$x.'</option>';?></select><button class="btn">Search</button></form></section>
+<input type="hidden" name="s" value="<?=e($st)?>"><button class="btn">Search</button></form></section>
 
+
+<div class="chips noprint"><?php foreach([""=>"All","Lost"=>"Lost","Found"=>"Found","Claimed"=>"Claimed","Returned"=>"Returned"] as $k=>$l)echo '<a href="?'.e(http_build_query(["q"=>$q,"c"=>$cat?:"","s"=>$k])).'"'.($st===(string)$k?' class="on"':'').'>'.$l.'</a>';?><span class="mut count"><?=count($items)?> item<?=count($items)===1?'':'s'?></span></div>
 
 <?php if(!$items)echo '<div class="empty"><h3>Nothing matches yet</h3><p>Try fewer words or clear the filters. New reports appear once the administrator verifies them.</p></div>';?>
 
@@ -32,7 +34,7 @@ head('Browse');?>
 
     <h3><?=e($i['name'])?></h3><p><?=e($i['description'])?></p>
 
-    <dl><dt>Category</dt><dd><?=e($i['cat'])?></dd><dt>Place</dt><dd><?=e($i['location'])?></dd><dt>Date</dt><dd><?=e($i['event_date'])?></dd></dl>
+    <dl><dt>Category</dt><dd><?=e($i['cat'])?></dd><dt><?=$i['status']==='Lost'?'Lost at':($i['status']==='Found'?'Found at':'Place')?></dt><dd><?=e($i['location'])?></dd><dt>Date</dt><dd><?=e($i['event_date'])?></dd></dl>
 
 <?php if($u['role']==='student'&&$i['status']==='Found'&&$i['user_id']!=$u['id']):
 
