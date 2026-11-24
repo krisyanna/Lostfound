@@ -1,49 +1,142 @@
-<?php require 'inc.php';need();$u=me();
 
-$q=trim($_GET['q']??'');$st=$_GET['s']??'';$cat=(int)($_GET['c']??0);
+<?php
+require 'inc.php';
+need();
+$u = me();
 
-$w=['i.verified=1'];$p=[];
+$q = trim($_GET['q'] ?? '');
+$st = $_GET['s'] ?? '';
+$cat = (int)($_GET['c'] ?? 0);
 
-if($q!==''){$w[]='(i.name LIKE ? OR i.description LIKE ? OR i.location LIKE ?)';array_push($p,"%$q%","%$q%","%$q%");}
-if(in_array($st,['Lost','Found','Claimed','Returned'],true)){$w[]='i.status=?';$p[]=$st;}
-if($cat){$w[]='i.category_id=?';$p[]=$cat;}
+$w = ['i.verified=1'];
+$p = [];
 
+if ($q !== '') {
+    $w[] = '(i.name LIKE ? OR i.description LIKE ? OR i.location LIKE ?)';
+    array_push($p, "%$q%", "%$q%", "%$q%");
+}
 
+if (in_array($st, ['Lost', 'Found', 'Claimed', 'Returned'], true)) {
+    $w[] = 'i.status=?';
+    $p[] = $st;
+}
 
-$s=db()->prepare('SELECT i.*,c.name cat FROM items i JOIN categories c ON c.id=i.category_id WHERE '.implode(' AND ',$w).' ORDER BY '.$order.' LIMIT 60');$s->execute($p);$items=$s->fetchAll();
-$cats=db()->query('SELECT * FROM categories ORDER BY name')->fetchAll();
-$pend=[];if($u['role']==='student'){$r=db()->prepare("SELECT item_id FROM claims WHERE user_id=? AND status='Pending'");$r->execute([$u['id']]);$pend=$r->fetchAll(PDO::FETCH_COLUMN);}
-head('Browse');?>
+if ($cat) {
+    $w[] = 'i.category_id=?';
+    $p[] = $cat;
+}
 
-<section class="hero"><h1>Find it. Claim it. Get it back.</h1><p>Search items reported on campus. Spotted yours? Send a claim with proof and the administrator will verify it.</p>
+// Sort newest submitted reports first
+$order = 'i.created_at DESC';
 
-<form class="search" method="get"><input name="q" value="<?=e($q)?>" placeholder="Search by item, description or place, e.g. “black umbrella library”">
+$s = db()->prepare(
+    'SELECT i.*, c.name cat
+     FROM items i
+     JOIN categories c ON c.id=i.category_id
+     WHERE ' . implode(' AND ', $w) . '
+     ORDER BY ' . $order . '
+     LIMIT 60'
+);
 
-<select name="c" data-auto><option value="0">All categories</option><?php foreach($cats as $c)echo '<option value="'.$c['id'].'"'.($cat==$c['id']?' selected':'').'>'.e($c['name']).'</option>';?></select>
+$s->execute($p);
+$items = $s->fetchAll();
 
-<input type="hidden" name="s" value="<?=e($st)?>"><button class="btn">Search</button></form></section>
+$cats = db()->query('SELECT * FROM categories ORDER BY name')->fetchAll();
 
+$pend = [];
 
-<div class="chips noprint"><?php foreach([""=>"All","Lost"=>"Lost","Found"=>"Found","Claimed"=>"Claimed","Returned"=>"Returned"] as $k=>$l)echo '<a href="?'.e(http_build_query(["q"=>$q,"c"=>$cat?:"","s"=>$k])).'"'.($st===(string)$k?' class="on"':'').'>'.$l.'</a>';?><span class="mut count"><?=count($items)?> item<?=count($items)===1?'':'s'?></span></div>
+if ($u['role'] === 'student') {
+    $r = db()->prepare("SELECT item_id FROM claims WHERE user_id=? AND status='Pending'");
+    $r->execute([$u['id']]);
+    $pend = $r->fetchAll(PDO::FETCH_COLUMN);
+}
 
-<?php if(!$items)echo '<div class="empty"><h3>Nothing matches yet</h3><p>Try fewer words or clear the filters. New reports appear once the administrator verifies them.</p></div>';?>
+head('Browse');
+?>
 
-<div class="grid"><?php foreach($items as $i):?>
+<section class="hero">
+    <h1>Find it. Claim it. Get it back.</h1>
+    <p>Search items reported on campus. Spotted yours? Send a claim with proof and the administrator will verify it.</p>
 
-    <article class="tk <?=e($i['status'])?>"><div class="stub"><b><?=e($i['status'])?></b><span><?=tno($i['id'])?></span></div>
+    <form class="search" method="get">
+        <input name="q" value="<?=e($q)?>" placeholder="Search by item, description or place, e.g. “black umbrella library”">
 
-    <div class="body"><?php if($i['photo'])echo '<img src="uploads/'.e($i['photo']).'" alt="Photo of '.e($i['name']).'" loading="lazy">';?>
+        <select name="c" data-auto>
+            <option value="0">All categories</option>
+            <?php foreach ($cats as $c) echo '<option value="'.$c['id'].'"'.($cat==$c['id']?' selected':'').'>'.e($c['name']).'</option>';?>
+        </select>
 
-    <h3><?=e($i['name'])?></h3><p><?=e($i['description'])?></p>
+        <input type="hidden" name="s" value="<?=e($st)?>">
+        <button class="btn">Search</button>
+    </form>
+</section>
 
-    <dl><dt>Category</dt><dd><?=e($i['cat'])?></dd><dt><?=$i['status']==='Lost'?'Lost at':($i['status']==='Found'?'Found at':'Place')?></dt><dd><?=e($i['location'])?></dd><dt>Date</dt><dd><?=e($i['event_date'])?></dd></dl>
+<div class="chips noprint">
+    <?php foreach ([""=>"All","Lost"=>"Lost","Found"=>"Found","Claimed"=>"Claimed","Returned"=>"Returned"] as $k=>$l)
+        echo '<a href="?'.e(http_build_query(["q"=>$q,"c"=>$cat?:"","s"=>$k])).'"'.($st===(string)$k?' class="on"':'').'>'.$l.'</a>';
+    ?>
 
-<?php if($u['role']==='student'&&$i['status']==='Found'&&$i['user_id']!=$u['id']):
+    <span class="mut count">
+        <?=count($items)?> item<?=count($items)===1?'':'s'?>
+    </span>
+</div>
 
-if(in_array($i['id'],$pend)):echo '<span class="mut">Claim pending review</span>';else:?>
+<?php if (!$items) echo '<div class="empty"><h3>Nothing matches yet</h3><p>Try fewer words or clear the filters. New reports appear once the administrator verifies them.</p></div>';?>
 
-<details><summary class="btn sm">This is mine</summary><form method="post" action="claim.php"><?=tok()?><input type="hidden" name="item" value="<?=$i['id']?>">
+<div class="grid">
+    <?php foreach ($items as $i):?>
 
-<label>Describe something only the owner would know<textarea name="proof" required minlength="15" maxlength="600" placeholder="Marks, contents, serial number, lock-screen photo…"></textarea></label><button class="btn sm">Send claim</button></form></details><?php endif;endif;?></div></article>
+    <article class="tk <?=e($i['status'])?>">
+        <div class="stub">
+            <b><?=e($i['status'])?></b>
+            <span><?=tno($i['id'])?></span>
+        </div>
 
-<?php endforeach;?></div><?php foot();
+        <div class="body">
+            <?php if ($i['photo']) echo '<img src="uploads/'.e($i['photo']).'" alt="Photo of '.e($i['name']).'" loading="lazy">';?>
+
+            <h3><?=e($i['name'])?></h3>
+            <p><?=e($i['description'])?></p>
+
+            <dl>
+                <dt>Category</dt>
+                <dd><?=e($i['cat'])?></dd>
+
+                <dt><?=$i['status']==='Lost'?'Lost at':($i['status']==='Found'?'Found at':'Place')?></dt>
+                <dd><?=e($i['location'])?></dd>
+
+                <dt>Date</dt>
+                <dd><?=e($i['event_date'])?></dd>
+            </dl>
+
+            <?php if ($u['role']==='student' && $i['status']==='Found' && $i['user_id']!=$u['id']):
+
+                if (in_array($i['id'], $pend)):
+                    echo '<span class="mut">Claim pending review</span>';
+                else:
+            ?>
+
+            <details>
+                <summary class="btn sm">This is mine</summary>
+
+                <form method="post" action="claim.php">
+                    <?=tok()?>
+                    <input type="hidden" name="item" value="<?=$i['id']?>">
+
+                    <label>
+                        Describe something only the owner would know
+                        <textarea name="proof" required minlength="15" maxlength="600" placeholder="Marks, contents, serial number, lock-screen photo…"></textarea>
+                    </label>
+
+                    <button class="btn sm">Send claim</button>
+                </form>
+            </details>
+
+            <?php endif; endif;?>
+        </div>
+    </article>
+
+    <?php endforeach;?>
+</div>
+
+<?php foot();?>
