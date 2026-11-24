@@ -3,6 +3,7 @@
 $q=trim($_GET['q']??'');$st=$_GET['s']??'';$cat=(int)($_GET['c']??0);
 
 $w=['i.verified=1'];$p=[];
+$order='i.created_at DESC';
 
 if($q!==''){$w[]='(i.name LIKE ? OR i.description LIKE ? OR i.location LIKE ?)';array_push($p,"%$q%","%$q%","%$q%");}
 if(in_array($st,['Lost','Found','Claimed','Returned'],true)){$w[]='i.status=?';$p[]=$st;}
