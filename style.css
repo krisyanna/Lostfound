@@ -585,13 +585,3 @@ blockquote {
     }
 }
 
-.filters {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr 160px 160px 180px auto;
-    gap: 10px;
-    align-items: center;
-}
-@media (max-width: 800px) {
-    .filters { grid-template-columns: 1fr; }
-}
