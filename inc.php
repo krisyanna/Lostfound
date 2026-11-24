@@ -1,15 +1,11 @@
 <?php
-/* =====================================================
-   Configuration: edit your database credentials here
-   ===================================================== */
+
 const DB_HOST = 'localhost';
 const DB_NAME = 'lostfound';
 const DB_USER = 'root';
 const DB_PASS = '';
 
-/* =====================================================
-   Session and security headers
-   ===================================================== */
+
 session_set_cookie_params([
     'httponly' => true,
     'samesite' => 'Strict',
@@ -31,7 +27,7 @@ function clean($s,$max){return mb_substr(trim(strip_tags((string)$s)),0,$max);}
 function head($title,$print=false){$u=me();$cur=basename($_SERVER['SCRIPT_NAME']);
 $n=fn($f,$l)=>'<a href="'.$f.'"'.($cur===$f?' class="on"':'').'>'.$l.'</a>';
 echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'.e($title).' · CvSU Lost &amp; Found</title><meta name="theme-color" content="#00693a"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&family=Source+Serif+4:wght@600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="style.css"></head><body>';
-echo '<div class="strip"><span>Cavite State University · Indang, Cavite</span><span>Lost and Found System</span></div><header class="top"><a class="brand" href="index.php"><i>CvSU</i><span>Lost &amp; Found<small>Cavite State University · Indang</small></span></a>';
+echo '<header class="top"><a class="brand" href="index.php"><i>CvSU</i><span>Lost &amp; Found<small>Cavite State University · Indang</small></span></a>';
 if($u)echo '<form method="post" action="logout.php" class="who"><span>'.e($u['name']).' · '.e($u['role']).'</span>'.tok().'<button class="btn ghost sm">Log out</button></form>';
 echo '</header>';
 if($u){echo '<nav class="menu">'.$n('index.php','Browse');
