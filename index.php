@@ -8,7 +8,15 @@ if($q!==''){$w[]='(i.name LIKE ? OR i.description LIKE ? OR i.location LIKE ?)';
 if(in_array($st,['Lost','Found','Claimed','Returned'],true)){$w[]='i.status=?';$p[]=$st;}
 if($cat){$w[]='i.category_id=?';$p[]=$cat;}
 
-$s=db()->prepare('SELECT i.*,c.name cat FROM items i JOIN categories c ON c.id=i.category_id WHERE '.implode(' AND ',$w).' ORDER BY i.created_at DESC LIMIT 60');$s->execute($p);$items=$s->fetchAll();
+$loc=trim($_GET['loc']??'');$from=$_GET['from']??'';$to=$_GET['to']??'';$sort=$_GET['sort']??'new';
+$okd=fn($d)=>($x=DateTime::createFromFormat('Y-m-d',$d))&&$x->format('Y-m-d')===$d;
+if($loc!==''){$w[]='i.location LIKE ?';$p[]="%$loc%";}
+if($okd($from)){$w[]='i.event_date>=?';$p[]=$from;}
+if($okd($to)){$w[]='i.event_date<=?';$p[]=$to;}
+$orders=['new'=>'i.created_at DESC, i.id DESC','old'=>'i.created_at ASC, i.id ASC','date'=>'i.event_date DESC, i.id DESC'];
+$order=$orders[$sort]??$orders['new'];
+
+$s=db()->prepare('SELECT i.*,c.name cat FROM items i JOIN categories c ON c.id=i.category_id WHERE '.implode(' AND ',$w).' ORDER BY '.$order.' LIMIT 60');$s->execute($p);$items=$s->fetchAll();
 $cats=db()->query('SELECT * FROM categories ORDER BY name')->fetchAll();
 $pend=[];if($u['role']==='student'){$r=db()->prepare("SELECT item_id FROM claims WHERE user_id=? AND status='Pending'");$r->execute([$u['id']]);$pend=$r->fetchAll(PDO::FETCH_COLUMN);}
 head('Browse');?>
@@ -19,7 +27,20 @@ head('Browse');?>
 
 <select name="c" data-auto><option value="0">All categories</option><?php foreach($cats as $c)echo '<option value="'.$c['id'].'"'.($cat==$c['id']?' selected':'').'>'.e($c['name']).'</option>';?></select>
 
-<select name="s" data-auto><option value="">Any status</option><?php foreach(['Lost','Found','Claimed','Returned'] as $x)echo '<option'.($st===$x?' selected':'').'>'.$x.'</option>';?></select><button class="btn">Search</button></form></section>
+<select name="s" data-auto><option value="">Any status</option><?php foreach(['Lost','Found','Claimed','Returned'] as $x)echo '<option'.($st===$x?' selected':'').'>'.$x.'</option>';?></select>
+
+<button class="btn">Search</button>
+<div class="filters">
+<input name="loc" value="<?=e($loc)?>" placeholder="Place contains…" aria-label="Place">
+<input type="date" name="from" value="<?=e($from)?>" title="Event date from" aria-label="Event date from">
+<input type="date" name="to" value="<?=e($to)?>" title="Event date to" aria-label="Event date to">
+<select name="sort" data-auto aria-label="Sort by">
+<option value="new">Newest posted</option>
+<option value="old"<?=$sort==='old'?' selected':''?>>Oldest posted</option>
+<option value="date"<?=$sort==='date'?' selected':''?>>Latest event date</option>
+</select>
+<a class="btn ghost sm" href="index.php">Clear</a>
+</div></form></section>
 
 
 <?php if(!$items)echo '<div class="empty"><h3>Nothing matches yet</h3><p>Try fewer words or clear the filters. New reports appear once the administrator verifies them.</p></div>';?>
