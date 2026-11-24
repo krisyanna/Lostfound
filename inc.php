@@ -1,7 +1,20 @@
 <?php
-// ---- Configuration: edit DB credentials here ----
-const DB_HOST='localhost', DB_NAME='lostfound', DB_USER='root', DB_PASS='';
-session_set_cookie_params(['httponly'=>true,'samesite'=>'Strict','secure'=>!empty($_SERVER['HTTPS'])]);
+/* =====================================================
+   Configuration: edit your database credentials here
+   ===================================================== */
+const DB_HOST = 'localhost';
+const DB_NAME = 'lostfound';
+const DB_USER = 'root';
+const DB_PASS = '';
+
+/* =====================================================
+   Session and security headers
+   ===================================================== */
+session_set_cookie_params([
+    'httponly' => true,
+    'samesite' => 'Strict',
+    'secure'   => !empty($_SERVER['HTTPS']),
+]);
 session_start();
 header('X-Frame-Options: DENY'); header('X-Content-Type-Options: nosniff'); header("Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self' 'unsafe-inline'");
 function db(){static $p;return $p??=new PDO('mysql:host='.DB_HOST.';dbname='.DB_NAME.';charset=utf8mb4',DB_USER,DB_PASS,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_ASSOC,PDO::ATTR_EMULATE_PREPARES=>false]);}

@@ -8,7 +8,9 @@ if($q!==''){$w[]='(i.name LIKE ? OR i.description LIKE ? OR i.location LIKE ?)';
 if(in_array($st,['Lost','Found','Claimed','Returned'],true)){$w[]='i.status=?';$p[]=$st;}
 if($cat){$w[]='i.category_id=?';$p[]=$cat;}
 
-$s=db()->prepare('SELECT i.*,c.name cat FROM items i JOIN categories c ON c.id=i.category_id WHERE '.implode(' AND ',$w).' ORDER BY i.created_at DESC LIMIT 60');$s->execute($p);$items=$s->fetchAll();
+
+
+$s=db()->prepare('SELECT i.*,c.name cat FROM items i JOIN categories c ON c.id=i.category_id WHERE '.implode(' AND ',$w).' ORDER BY '.$order.' LIMIT 60');$s->execute($p);$items=$s->fetchAll();
 $cats=db()->query('SELECT * FROM categories ORDER BY name')->fetchAll();
 $pend=[];if($u['role']==='student'){$r=db()->prepare("SELECT item_id FROM claims WHERE user_id=? AND status='Pending'");$r->execute([$u['id']]);$pend=$r->fetchAll(PDO::FETCH_COLUMN);}
 head('Browse');?>
